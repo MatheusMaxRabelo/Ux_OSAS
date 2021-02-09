@@ -1,0 +1,93 @@
+﻿@page "/"
+@inject ICovidService _covidService
+@using ViewModel
+
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-6">
+                <h1>Covid Board</h1>
+            </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-info card-outline">
+            <div class="card-body">
+                <div class="row flex-row align-items-end">
+
+                    <div class="col-sm-2 mb-2 flex-column">
+                        <!-- text input -->
+                        <label for="Country">País</label>
+                        <div class="form-group">
+                            <EditForm EditContext="@EditContext" Context="NewContext">
+                                <InputSelect @bind-Value="@Country">
+                                    @foreach (var country in Countries)
+                                    {
+                                        <option value="@country.Key">@country.Value</option>
+                                    }
+                                </InputSelect>
+                            </EditForm>
+                        </div>
+                    </div>
+
+                </div>
+                @if (CovidData != null && !IsLoading)
+                {
+                    <Ux_OSAS.Components.Table Items="CovidData">
+                        <TableHeader>
+                            <th>Mês</th>
+                            <th>Ano</th>
+                            <th>Nº.Casos</th>
+                            <th>Status</th>
+                        </TableHeader>
+                        <RowTemplate Context="Covid">
+                            <td>@Covid.Month</td>
+                            <td>@Covid.Year</td>
+                            <td>@Covid.Cases</td>
+                            <td>@Covid.Status</td>
+                        </RowTemplate>
+                    </Ux_OSAS.Components.Table>
+                }
+                else if(IsLoading) { 
+                <Ux_OSAS.Components.Loading/>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+@code{
+    private EditContext EditContext;
+
+    public string Country { get; set; } = string.Empty;
+    public Dictionary<string, string> Countries { get; set; } = new Dictionary<string, string>();
+    public List<Covid> CovidData { get; set; }
+    public bool IsLoading { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        AddCountries();
+        EditContext = new EditContext(Country);
+        EditContext.OnFieldChanged += SelectedCountry;
+    }
+
+    protected void AddCountries()
+    {
+        Countries.Add("Argentina", "Argentina");
+        Countries.Add("Brazil", "Brasil");
+    }
+
+    public async void SelectedCountry(object sender, FieldChangedEventArgs e)
+    {
+        if (e.FieldIdentifier.FieldName == "Country")
+        {
+            IsLoading = true;
+            StateHasChanged();
+            CovidData = await _covidService.GetCovidData(Country);
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}
